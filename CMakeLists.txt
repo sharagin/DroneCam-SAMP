@@ -8,7 +8,6 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/plugin-sdk" CACHE PATH "Path to plugin-sdk")
 
-# ImGui (DX9 + Win32)
 include(FetchContent)
 FetchContent_Declare(
     imgui
@@ -30,20 +29,23 @@ target_include_directories(imgui_lib PUBLIC
     ${imgui_SOURCE_DIR}/backends
 )
 
-# Plugin-SDK (GTA SA)
-file(GLOB_RECURSE PLUGIN_SDK_SOURCES
-    "${PLUGIN_SDK_DIR}/plugin_sa/*.cpp"
-    "${PLUGIN_SDK_DIR}/shared/*.cpp"
+file(GLOB PLUGIN_SHARED_SOURCES "${PLUGIN_SDK_DIR}/shared/*.cpp")
+
+set(PLUGIN_SOURCES
+    ${PLUGIN_SHARED_SOURCES}
+    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CCamera.cpp"
+    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CTimer.cpp"
+    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CHud.cpp"
+    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CPad.cpp"
 )
 
-add_library(plugin_sa STATIC ${PLUGIN_SDK_SOURCES})
+add_library(plugin_sa STATIC ${PLUGIN_SOURCES})
 
 target_compile_definitions(plugin_sa PUBLIC
     GTASA
     _CRT_SECURE_NO_WARNINGS
     _CRT_NON_CONFORMING_SWPRINTFS
     _USE_MATH_DEFINES
-    _HAS_DEPRECATED_RESULT_OF=1
     NOMINMAX
 )
 
@@ -58,7 +60,6 @@ if(MSVC)
     target_compile_options(plugin_sa PRIVATE /MP /W3)
 endif()
 
-# Целевой ASI-плагин
 add_library(DroneCam SHARED main.cpp)
 
 target_include_directories(DroneCam PRIVATE
