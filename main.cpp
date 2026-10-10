@@ -48,8 +48,8 @@ private:
     }
 
     static void NormalizeAngles() {
-        if (fYaw > M_PI)  fYaw -= 2.0f * static_cast<float>(M_PI);
-        if (fYaw < -M_PI) fYaw += 2.0f * static_cast<float>(M_PI);
+        if (fYaw > static_cast<float>(M_PI))  fYaw -= 2.0f * static_cast<float>(M_PI);
+        if (fYaw < -static_cast<float>(M_PI)) fYaw += 2.0f * static_cast<float>(M_PI);
         fPitch = std::clamp(fPitch, -1.52f, 1.52f);
     }
 
@@ -58,8 +58,8 @@ private:
 
         if (bActive) {
             vPos = TheCamera.GetPosition();
-            vVelocity = { 0.0f, 0.0f, 0.0f };
-            fYaw = -TheCamera.m_fOrientation;
+            vVelocity = CVector(0.0f, 0.0f, 0.0f);
+            fYaw = 0.0f;
             fPitch = 0.0f;
             TheCamera.TakeControl(nullptr, 0, 1, 1);
         } else {
@@ -83,7 +83,7 @@ private:
         }
 
         if (bShowUI) {
-            CPad::GetPad(0)->DisablePlayerControls = true;
+            CPad::GetPad(0)->DisablePlayerControls = 1;
             return;
         }
 
@@ -99,10 +99,10 @@ private:
             bHHeld = false;
         }
 
-        CPad::GetPad(0)->DisablePlayerControls = true;
+        CPad::GetPad(0)->DisablePlayerControls = 1;
 
-        float mouseDeltaX = -static_cast<float>(CPad::GetPad(0)->NewMouseControllerState.x);
-        float mouseDeltaY = -static_cast<float>(CPad::GetPad(0)->NewMouseControllerState.y);
+        float mouseDeltaX = -static_cast<float>(CPad::GetPad(0)->NewMouseControllerState.X);
+        float mouseDeltaY = -static_cast<float>(CPad::GetPad(0)->NewMouseControllerState.Y);
 
         fYaw   += mouseDeltaX * 0.0035f;
         fPitch += mouseDeltaY * 0.0035f;
@@ -121,22 +121,22 @@ private:
         );
 
         CVector worldUp(0.0f, 0.0f, 1.0f);
-        CVector inputAccel = { 0.0f, 0.0f, 0.0f };
+        CVector inputAccel(0.0f, 0.0f, 0.0f);
 
-        if (GetAsyncKeyState('W') & 0x8000) inputAccel += forward;
-        if (GetAsyncKeyState('S') & 0x8000) inputAccel -= forward;
-        if (GetAsyncKeyState('D') & 0x8000) inputAccel += right;
-        if (GetAsyncKeyState('A') & 0x8000) inputAccel -= right;
-        if (GetAsyncKeyState(VK_SPACE) & 0x8000) inputAccel += worldUp;
-        if (GetAsyncKeyState(VK_LCONTROL) & 0x8000) inputAccel -= worldUp;
+        if (GetAsyncKeyState('W') & 0x8000) inputAccel = inputAccel + forward;
+        if (GetAsyncKeyState('S') & 0x8000) inputAccel = inputAccel - forward;
+        if (GetAsyncKeyState('D') & 0x8000) inputAccel = inputAccel + right;
+        if (GetAsyncKeyState('A') & 0x8000) inputAccel = inputAccel - right;
+        if (GetAsyncKeyState(VK_SPACE) & 0x8000) inputAccel = inputAccel + worldUp;
+        if (GetAsyncKeyState(VK_LCONTROL) & 0x8000) inputAccel = inputAccel - worldUp;
 
         float boost = (GetAsyncKeyState(VK_LSHIFT) & 0x8000) ? fBoostFactor : 1.0f;
         float frameStep = CTimer::ms_fTimeStep;
 
-        vVelocity = vVelocity * fInertiaDamping + inputAccel * (fMoveSpeed * boost * fSpeedMultiplier * 0.14f);
-        vPos += vVelocity * frameStep;
+        vVelocity = (vVelocity * fInertiaDamping) + (inputAccel * (fMoveSpeed * boost * fSpeedMultiplier * 0.14f));
+        vPos = vPos + (vVelocity * frameStep);
 
-        CVector targetLookAt = vPos + forward * 5.0f;
+        CVector targetLookAt = vPos + (forward * 5.0f);
         TheCamera.SetCamPositionForFixedMode(&vPos, &targetLookAt);
         TheCamera.m_asCams[TheCamera.m_nActiveCam].m_fFOV = fCurrentFOV;
     }
@@ -149,8 +149,8 @@ private:
             if (ImGui::Checkbox("Active [Drone Mode]", &bActive)) {
                 if (bActive) {
                     vPos = TheCamera.GetPosition();
-                    vVelocity = { 0.0f, 0.0f, 0.0f };
-                    fYaw = -TheCamera.m_fOrientation;
+                    vVelocity = CVector(0.0f, 0.0f, 0.0f);
+                    fYaw = 0.0f;
                     fPitch = 0.0f;
                     TheCamera.TakeControl(nullptr, 0, 1, 1);
                 } else {
@@ -170,7 +170,7 @@ private:
 
             ImGui::Separator();
             if (ImGui::Button("Reset Physics", ImVec2(-1, 0))) {
-                vVelocity = { 0.0f, 0.0f, 0.0f };
+                vVelocity = CVector(0.0f, 0.0f, 0.0f);
                 fMoveSpeed = 0.45f;
                 fSpeedMultiplier = 1.0f;
                 fBoostFactor = 2.5f;
@@ -183,7 +183,9 @@ private:
 
     static void InitImGui(IDirect3DDevice9* pDevice) {
         D3DDEVICE_CREATION_PARAMETERS params;
-        pDevice->GetCreationParameters(&params);
+        if (FAILED(pDevice->GetCreationParameters(&params))) {
+            return;
+        }
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -207,37 +209,27 @@ public:
             if (bActive && bHideHud) {
                 CHud::m_Wants_To_Draw_Hud = false;
             }
-        };
 
-        Events::d3dLostEvent += []() {
-            if (bImGuiInitialized) {
-                ImGui_ImplDX9_InvalidateDeviceObjects();
-            }
-        };
-
-        Events::d3dResetEvent += []() {
-            if (bImGuiInitialized) {
-                ImGui_ImplDX9_CreateDeviceObjects();
-            }
-        };
-
-        Events::d3dRenderEvent += []() {
-            IDirect3DDevice9* pDevice = reinterpret_cast<IDirect3DDevice9*>(GetD3DDevice());
+            IDirect3DDevice9* pDevice = *reinterpret_cast<IDirect3DDevice9**>(0xC97C28);
             if (!pDevice) return;
+
+            if (pDevice->TestCooperativeLevel() != D3D_OK) return;
 
             if (!bImGuiInitialized) {
                 InitImGui(pDevice);
             }
 
-            ImGui_ImplDX9_NewFrame();
-            ImGui_ImplWin32_NewFrame();
-            ImGui::NewFrame();
+            if (bImGuiInitialized) {
+                ImGui_ImplDX9_NewFrame();
+                ImGui_ImplWin32_NewFrame();
+                ImGui::NewFrame();
 
-            RenderUI();
+                RenderUI();
 
-            ImGui::EndFrame();
-            ImGui::Render();
-            ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+                ImGui::EndFrame();
+                ImGui::Render();
+                ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+            }
         };
     }
 } dronePlugin;
