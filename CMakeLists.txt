@@ -31,15 +31,7 @@ target_include_directories(imgui_lib PUBLIC
 
 file(GLOB PLUGIN_SHARED_SOURCES "${PLUGIN_SDK_DIR}/shared/*.cpp")
 
-set(PLUGIN_SOURCES
-    ${PLUGIN_SHARED_SOURCES}
-    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CCamera.cpp"
-    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CTimer.cpp"
-    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CHud.cpp"
-    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa/CPad.cpp"
-)
-
-add_library(plugin_sa STATIC ${PLUGIN_SOURCES})
+add_library(plugin_sa STATIC ${PLUGIN_SHARED_SOURCES})
 
 target_compile_definitions(plugin_sa PUBLIC
     GTASA
@@ -57,7 +49,7 @@ target_include_directories(plugin_sa PUBLIC
 )
 
 if(MSVC)
-    target_compile_options(plugin_sa PRIVATE /MP /W3)
+    target_compile_options(plugin_sa PRIVATE /MP /W3 /permissive)
 endif()
 
 add_library(DroneCam SHARED main.cpp)
@@ -80,7 +72,7 @@ target_compile_definitions(DroneCam PRIVATE
 )
 
 if(MSVC)
-    target_compile_options(DroneCam PRIVATE /MP)
+    target_compile_options(DroneCam PRIVATE /MP /permissive)
 endif()
 
 set_target_properties(DroneCam PROPERTIES
