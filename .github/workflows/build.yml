@@ -15,25 +15,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup MSVC & Developer Command Prompt
+      - name: Setup MSVC x86 Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
 
-      - name: Setup Premake & Build Plugin-SDK
+      - name: Clone Plugin-SDK
+        shell: cmd
         run: |
-          curl -L -o premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-beta2/premake-5.0.0-beta2-windows.zip
-          tar -xf premake.zip
           git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git plugin-sdk
-          cd plugin-sdk
-          ..\premake5.exe vs2022
-          msbuild plugin-sdk.sln /t:plugin_sa /p:Configuration=Release /p:Platform=Win32 /m
 
       - name: Configure CMake
+        shell: cmd
         run: |
           cmake -B build -S . -A Win32 -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
+        shell: cmd
         run: |
           cmake --build build --config Release --parallel
 
