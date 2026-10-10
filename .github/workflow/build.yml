@@ -1,0 +1,47 @@
+name: Build DroneCam ASI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSVC & Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - name: Clone Plugin-SDK
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git ${{ runner.workspace }}/plugin-sdk
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          cmake -B build -S . \
+            -A Win32 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPLUGIN_SDK_DIR="${{ runner.workspace }}/plugin-sdk"
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake --build build --config Release --parallel
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DroneCam-ASI
+          path: build/Release/*.asi
