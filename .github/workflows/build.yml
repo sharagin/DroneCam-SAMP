@@ -14,29 +14,26 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Setup MSVC & Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
 
-      - name: Clone Plugin-SDK
-        shell: bash
+      - name: Setup Premake & Build Plugin-SDK
         run: |
-          git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git ${{ runner.workspace }}/plugin-sdk
+          curl -L -o premake.zip https://github.com/premake/premake-core/releases/download/v5.0.0-beta2/premake-5.0.0-beta2-windows.zip
+          tar -xf premake.zip
+          git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git plugin-sdk
+          cd plugin-sdk
+          ..\premake5.exe vs2022
+          msbuild plugin-sdk.sln /t:plugin_sa /p:Configuration=Release /p:Platform=Win32 /m
 
       - name: Configure CMake
-        shell: bash
         run: |
-          cmake -B build -S . \
-            -A Win32 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DPLUGIN_SDK_DIR="${{ runner.workspace }}/plugin-sdk"
+          cmake -B build -S . -A Win32 -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        shell: bash
         run: |
           cmake --build build --config Release --parallel
 
