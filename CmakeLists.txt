@@ -4,7 +4,11 @@ project(DroneCam LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(PLUGIN_SDK_DIR "$ENV{PLUGIN_SDK_DIR}" CACHE PATH "Path to plugin-sdk directory")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+if(NOT DEFINED PLUGIN_SDK_DIR)
+    set(PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/plugin-sdk" CACHE PATH "Path to plugin-sdk")
+endif()
 
 include(FetchContent)
 FetchContent_Declare(
@@ -27,7 +31,15 @@ target_include_directories(imgui_lib PUBLIC
     ${imgui_SOURCE_DIR}/backends
 )
 
-include_directories(
+find_library(PLUGIN_LIB 
+    NAMES plugin plugin_sa 
+    PATHS "${PLUGIN_SDK_DIR}/output/lib"
+    REQUIRED
+)
+
+add_library(DroneCam SHARED main.cpp)
+
+target_include_directories(DroneCam PRIVATE
     ${PLUGIN_SDK_DIR}/plugin_sa
     ${PLUGIN_SDK_DIR}/plugin_sa/game_sa
     ${PLUGIN_SDK_DIR}/shared
@@ -36,18 +48,13 @@ include_directories(
     ${imgui_SOURCE_DIR}/backends
 )
 
-link_directories(${PLUGIN_SDK_DIR}/output/lib)
-
-add_library(DroneCam SHARED main.cpp)
-
 set_target_properties(DroneCam PROPERTIES
     SUFFIX ".asi"
     PREFIX ""
-    MSVC_RUNTIME_LIBRARY "MultiThreaded"
 )
 
 target_link_libraries(DroneCam PRIVATE 
     imgui_lib 
-    plugin.lib 
+    ${PLUGIN_LIB}
     d3d9.lib
 )
