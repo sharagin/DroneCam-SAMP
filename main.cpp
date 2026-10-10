@@ -18,6 +18,26 @@ using namespace plugin;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+float &CTimer::ms_fTimeStep = *reinterpret_cast<float*>(0xB7CB5C);
+bool &CHud::m_Wants_To_Draw_Hud = *reinterpret_cast<bool*>(0xBA6769);
+CCamera &TheCamera = *reinterpret_cast<CCamera*>(0xB6F028);
+
+CPad *CPad::GetPad(int padNumber) {
+    return reinterpret_cast<CPad*(__cdecl*)(int)>(0x53FB70)(padNumber);
+}
+
+void CCamera::TakeControl(CEntity *target, short mode, short switchStyle, int performCut) {
+    reinterpret_cast<void(__thiscall*)(CCamera*, CEntity*, short, short, int)>(0x50C7C0)(this, target, mode, switchStyle, performCut);
+}
+
+void CCamera::Restore() {
+    reinterpret_cast<void(__thiscall*)(CCamera*)>(0x50AB50)(this);
+}
+
+void CCamera::SetCamPositionForFixedMode(CVector *pos, CVector *lookAt) {
+    reinterpret_cast<void(__thiscall*)(CCamera*, CVector*, CVector*)>(0x50BEC0)(this, pos, lookAt);
+}
+
 class DroneCam {
 private:
     static inline bool bActive = false;
