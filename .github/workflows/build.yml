@@ -20,11 +20,6 @@ jobs:
         with:
           arch: x86
 
-      - name: Clone Plugin-SDK
-        shell: cmd
-        run: |
-          git clone --depth 1 https://github.com/DK22Pac/plugin-sdk.git plugin-sdk
-
       - name: Configure CMake
         shell: cmd
         run: |
