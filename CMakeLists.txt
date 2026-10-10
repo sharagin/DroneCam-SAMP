@@ -1,15 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 project(DroneCam LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-if(NOT DEFINED PLUGIN_SDK_DIR)
-    set(PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/plugin-sdk" CACHE PATH "Path to plugin-sdk")
-endif()
+set(PLUGIN_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/plugin-sdk" CACHE PATH "Path to plugin-sdk")
 
+# ImGui (DX9 + Win32)
 include(FetchContent)
 FetchContent_Declare(
     imgui
@@ -31,12 +30,35 @@ target_include_directories(imgui_lib PUBLIC
     ${imgui_SOURCE_DIR}/backends
 )
 
-find_library(PLUGIN_LIB 
-    NAMES plugin plugin_sa 
-    PATHS "${PLUGIN_SDK_DIR}/output/lib"
-    REQUIRED
+# Plugin-SDK (GTA SA)
+file(GLOB_RECURSE PLUGIN_SDK_SOURCES
+    "${PLUGIN_SDK_DIR}/plugin_sa/*.cpp"
+    "${PLUGIN_SDK_DIR}/shared/*.cpp"
 )
 
+add_library(plugin_sa STATIC ${PLUGIN_SDK_SOURCES})
+
+target_compile_definitions(plugin_sa PUBLIC
+    GTASA
+    _CRT_SECURE_NO_WARNINGS
+    _CRT_NON_CONFORMING_SWPRINTFS
+    _USE_MATH_DEFINES
+    _HAS_DEPRECATED_RESULT_OF=1
+    NOMINMAX
+)
+
+target_include_directories(plugin_sa PUBLIC
+    "${PLUGIN_SDK_DIR}/plugin_sa"
+    "${PLUGIN_SDK_DIR}/plugin_sa/game_sa"
+    "${PLUGIN_SDK_DIR}/shared"
+    "${PLUGIN_SDK_DIR}/shared/game"
+)
+
+if(MSVC)
+    target_compile_options(plugin_sa PRIVATE /MP /W3)
+endif()
+
+# Целевой ASI-плагин
 add_library(DroneCam SHARED main.cpp)
 
 target_include_directories(DroneCam PRIVATE
@@ -48,13 +70,25 @@ target_include_directories(DroneCam PRIVATE
     ${imgui_SOURCE_DIR}/backends
 )
 
+target_compile_definitions(DroneCam PRIVATE
+    GTASA
+    _CRT_SECURE_NO_WARNINGS
+    _CRT_NON_CONFORMING_SWPRINTFS
+    _USE_MATH_DEFINES
+    NOMINMAX
+)
+
+if(MSVC)
+    target_compile_options(DroneCam PRIVATE /MP)
+endif()
+
 set_target_properties(DroneCam PROPERTIES
     SUFFIX ".asi"
     PREFIX ""
 )
 
 target_link_libraries(DroneCam PRIVATE 
+    plugin_sa
     imgui_lib 
-    ${PLUGIN_LIB}
     d3d9.lib
 )
